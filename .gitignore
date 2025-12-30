@@ -1,0 +1,84 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (uncomment if using vendor)
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Go build cache
+.cache/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+logs/
+
+# Build artifacts
+dist/
+build/
+bin/
+worker
+*.exe
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker volumes
+docker-volumes/
+
+# LocalStack data
+.localstack/
+
+# Test coverage
+coverage.html
+coverage.xml
+*.cover
+
+# Go modules proxy cache
+/pkg/
+
+# Air live reload
+tmp/
+
+# Test files generated during testing
+*_test.txt
+multipart_test.txt
+rest_test.txt
+test_file.txt
+
+

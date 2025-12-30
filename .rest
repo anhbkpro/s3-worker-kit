@@ -1,0 +1,41 @@
+# Alternative .rest file format (if your extension prefers this)
+@hostname = localhost
+@port = 4005
+@baseUrl = http://{{hostname}}:{{port}}
+@bucket = test-bucket
+
+### Quick Health Check
+GET {{baseUrl}}/api/v1/health
+
+### Quick File Upload
+POST {{baseUrl}}/api/v1/upload/file
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="bucket"
+
+{{bucket}}
+--boundary123
+Content-Disposition: form-data; name="key"
+
+quick-upload.txt
+--boundary123
+Content-Disposition: form-data; name="file"; filename="quick.txt"
+Content-Type: text/plain
+
+Quick test upload!
+--boundary123--
+
+### Quick JSON Upload
+POST {{baseUrl}}/api/v1/upload/tasks
+Content-Type: application/json
+
+{
+  "tasks": [
+    {
+      "bucket": "{{bucket}}",
+      "key": "quick-json.txt",
+      "data": "UXVpY2sgSlNPTiB0ZXN0IHVwbG9hZCE="
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+# S3 Worker Kit API Tests
+# Use with REST Client extension (e.g., VS Code REST Client)
+
+@baseUrl = http://localhost:4006
+@bucket = test-bucket
+
+### Health Check
+GET {{baseUrl}}/api/v1/health
+
+###
+
+### Upload Single File (Multipart Form)
+POST {{baseUrl}}/api/v1/upload/file
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+----WebKitFormBoundary
+Content-Disposition: form-data; name="bucket"
+
+{{bucket}}
+----WebKitFormBoundary
+Content-Disposition: form-data; name="key"
+
+rest-client-upload.txt
+----WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="sample.txt"
+Content-Type: text/plain
+
+Hello from REST Client!
+This is a test file uploaded via the S3 Worker Kit API.
+----WebKitFormBoundary--
+
+###
+
+### Upload Multiple Tasks (JSON)
+POST {{baseUrl}}/api/v1/upload/tasks
+Content-Type: application/json
+
+{
+  "tasks": [
+    {
+      "bucket": "{{bucket}}",
+      "key": "task-file-1.txt",
+      "data": "SGVsbG8gZnJvbSByZXN0IGNsaWVudCB0YXNrIDEh"
+    },
+    {
+      "bucket": "{{bucket}}",
+      "key": "task-file-2.txt",
+      "data": "SGVsbG8gZnJvbSByZXN0IGNsaWVudCB0YXNrIDIh"
+    },
+    {
+      "bucket": "{{bucket}}",
+      "key": "task-file-3.txt",
+      "data": "SGVsbG8gZnJvbSByZXN0IGNsaWVudCB0YXNrIDMh"
+    }
+  ]
+}
+
+###
+
+### Upload Single Task (JSON)
+POST {{baseUrl}}/api/v1/upload/tasks
+Content-Type: application/json
+
+{
+  "tasks": [
+    {
+      "bucket": "{{bucket}}",
+      "key": "single-task.txt",
+      "data": "SGVsbG8gZnJvbSBzaW5nbGUgdGFzayB1cGxvYWQh"
+    }
+  ]
+}
+
+###
+
+### Upload Large File Simulation
+POST {{baseUrl}}/api/v1/upload/file
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+----WebKitFormBoundary
+Content-Disposition: form-data; name="bucket"
+
+{{bucket}}
+----WebKitFormBoundary
+Content-Disposition: form-data; name="key"
+
+large-file.txt
+----WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="large.txt"
+Content-Type: text/plain
+
+This is a larger file content for testing the upload functionality.
+It contains multiple lines and demonstrates how the API handles
+larger payloads.
+
+Line 1: Lorem ipsum dolor sit amet
+Line 2: Consectetur adipiscing elit
+Line 3: Sed do eiusmod tempor incididunt
+Line 4: Ut labore et dolore magna aliqua
+Line 5: Ut enim ad minim veniam
+
+End of file content.
+----WebKitFormBoundary--
+
+###
+
+### Upload with Custom Bucket
+POST {{baseUrl}}/api/v1/upload/tasks
+Content-Type: application/json
+
+{
+  "tasks": [
+    {
+      "bucket": "custom-bucket",
+      "key": "custom-bucket-file.txt",
+      "data": "VXBsb2FkZWQgdG8gYSBjdXN0b20gYnVja2V0IQ=="
+    }
+  ]
+}
+
+###
+
+### Upload Binary Data (Base64 encoded image simulation)
+POST {{baseUrl}}/api/v1/upload/tasks
+Content-Type: application/json
+
+{
+  "tasks": [
+    {
+      "bucket": "{{bucket}}",
+      "key": "binary-data.dat",
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+    }
+  ]
+}
+
+###
+
+### Test Error Handling - Invalid JSON
+POST {{baseUrl}}/api/v1/upload/tasks
+Content-Type: application/json
+
+{
+  "invalid": "json",
+  "missing": "tasks array"
+}
+
+###
+
+### Test Error Handling - Empty Tasks
+POST {{baseUrl}}/api/v1/upload/tasks
+Content-Type: application/json
+
+{
+  "tasks": []
+}
+
+###
+
+### Test Error Handling - Missing Required Fields
+POST {{baseUrl}}/api/v1/upload/tasks
+Content-Type: application/json
+
+{
+  "tasks": [
+    {
+      "key": "missing-bucket.txt",
+      "data": "dGVzdA=="
+    }
+  ]
+}
+
+###
+
+# Verification Commands (run these in terminal after uploads)
+# aws --endpoint-url=http://localhost:4566 s3 ls s3://test-bucket/
+# aws --endpoint-url=http://localhost:4566 s3 cp s3://test-bucket/rest-client-upload.txt -
+
+###
+
+# Setup Instructions:
+# 1. Start LocalStack: docker-compose up -d
+# 2. Create test bucket: aws --endpoint-url=http://localhost:4566 s3 mb s3://test-bucket
+# 3. Start server with LocalStack config:
+#    AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_ENDPOINT=http://localhost:4566 AWS_REGION=us-east-1 ./worker -mode=server -port=4005
+# 4. Run requests above using REST Client extension

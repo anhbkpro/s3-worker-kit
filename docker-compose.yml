@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  # LocalStack - S3 emulator
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: s3_worker_kit_localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - AWS_DEFAULT_REGION=us-east-1
+      - DEBUG=1
+    restart: unless-stopped
+
+  # Tempo - Distributed Tracing Backend
+  tempo:
+    image: grafana/tempo:2.3.1
+    container_name: s3_worker_kit_tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/tmp/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP
+      - "9095:9096"   # Tempo gRPC
+    restart: unless-stopped
+
+  # OTLP Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.89.0
+    container_name: s3_worker_kit_otel_collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics
+      - "8889:8889"   # Prometheus metrics (additional)
+    depends_on:
+      - tempo
+    restart: unless-stopped
+
+  # Grafana - Monitoring & Observability
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: s3_worker_kit_grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_LOG_LEVEL=info
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - tempo
+    restart: unless-stopped
+
+volumes:
+  tempo-data:
+  grafana-data:
