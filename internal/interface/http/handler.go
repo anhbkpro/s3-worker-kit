@@ -9,6 +9,7 @@ import (
 	"s3-worker-kit/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Handler struct {
@@ -32,6 +33,12 @@ type UploadTaskRequest struct {
 	Bucket string `json:"bucket" binding:"required"`
 	Key    string `json:"key" binding:"required"`
 	Data   string `json:"data" binding:"required"` // Base64 encoded data
+}
+
+// Metrics handles Prometheus metrics endpoint
+func (h *Handler) Metrics(c *gin.Context) {
+	h.logger.Info("metrics endpoint called", "user_agent", c.GetHeader("User-Agent"))
+	promhttp.Handler().ServeHTTP(c.Writer, c.Request)
 }
 
 // UploadTasks handles JSON-based upload requests
@@ -158,7 +165,10 @@ func SetupRoutes(handler *Handler, logger observability.Logger, tp middleware.Tr
 
 	router := gin.Default()
 
-	// Add trace middleware for distributed tracing
+	// Metrics endpoint for Prometheus (before middleware to avoid tracing interference)
+	router.GET("/metrics", handler.Metrics)
+
+	// Add trace middleware for distributed tracing (after metrics endpoint)
 	router.Use(middleware.TraceMiddleware(observability.ServiceName, tp))
 
 	// Add service name to all responses

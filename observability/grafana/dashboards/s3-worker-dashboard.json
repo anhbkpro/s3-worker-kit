@@ -1,0 +1,204 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "S3 Worker Kit - Upload Performance",
+    "tags": ["s3", "worker", "performance"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Upload Latency Percentiles",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(s3_worker_upload_duration_seconds_bucket[5m])) by (le, bucket))",
+            "legendFormat": "95th percentile - {{bucket}}",
+            "refId": "A",
+            "datasource": "prometheus"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(s3_worker_upload_duration_seconds_bucket[5m])) by (le, bucket))",
+            "legendFormat": "50th percentile - {{bucket}}",
+            "refId": "B",
+            "datasource": "prometheus"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "min": 0,
+            "max": 10
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Upload Latency Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(s3_worker_upload_duration_seconds_bucket[1m])) by (le, bucket))",
+            "legendFormat": "95th percentile - {{bucket}}",
+            "refId": "A",
+            "datasource": "prometheus"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(s3_worker_upload_duration_seconds_bucket[1m])) by (le, bucket))",
+            "legendFormat": "50th percentile - {{bucket}}",
+            "refId": "B",
+            "datasource": "prometheus"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Upload Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(s3_worker_upload_total{status=\"success\"}[5m]) / (rate(s3_worker_upload_total{status=\"success\"}[5m]) + rate(s3_worker_upload_total{status=\"error\"}[5m])) * 100",
+            "legendFormat": "Success Rate",
+            "refId": "A",
+            "datasource": "prometheus"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 90
+                },
+                {
+                  "color": "green",
+                  "value": 95
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 8,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Total Upload Operations",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(s3_worker_upload_total[5m]))",
+            "legendFormat": "Total Uploads",
+            "refId": "A",
+            "datasource": "prometheus"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none"
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 8,
+          "x": 8,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Active Upload Operations",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "s3_worker_active_uploads",
+            "legendFormat": "Active Uploads",
+            "refId": "A",
+            "datasource": "prometheus"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "min": 0,
+            "max": 10
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 8,
+          "x": 16,
+          "y": 8
+        }
+      },
+      {
+        "id": 6,
+        "title": "Upload Latency Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "sum(increase(s3_worker_upload_duration_seconds_bucket[5m])) by (le, bucket)",
+            "legendFormat": "{{le}}s - {{bucket}}",
+            "refId": "A",
+            "datasource": "prometheus"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 12
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

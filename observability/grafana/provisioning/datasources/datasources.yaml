@@ -15,9 +15,16 @@ datasources:
     access: proxy
     url: http://tempo:3200
     uid: tempo
-    isDefault: true
+    isDefault: false
     editable: false
     jsonData:
       httpMethod: GET
       tracesToLogs:
         datasourceUid: 'loki'
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://host.docker.internal:4000
+    uid: prometheus
+    isDefault: false
+    editable: false

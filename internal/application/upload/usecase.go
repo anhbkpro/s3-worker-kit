@@ -2,8 +2,11 @@ package upload
 
 import (
 	"context"
-	"s3-worker-kit/internal/domain/s3task"
 	"sync"
+	"time"
+
+	"s3-worker-kit/internal/domain/s3task"
+	"s3-worker-kit/internal/observability"
 )
 
 func (s *Service) UploadAll(
@@ -19,9 +22,25 @@ func (s *Service) UploadAll(
 
 		err := s.pool.Submit(func() {
 			defer wg.Done()
-			if err := s.uploader.Upload(ctx, t); err != nil {
+
+			// Track active uploads
+			observability.ActiveUploads.Inc()
+			defer observability.ActiveUploads.Dec()
+
+			// Measure upload latency
+			start := time.Now()
+			err := s.uploader.Upload(ctx, t)
+			duration := time.Since(start).Seconds()
+
+			// Record metrics
+			status := "success"
+			if err != nil {
+				status = "error"
 				errCh <- err
 			}
+
+			observability.UploadLatency.WithLabelValues(t.Bucket, status).Observe(duration)
+			observability.UploadTotal.WithLabelValues(t.Bucket, status).Inc()
 		})
 		if err != nil {
 			wg.Done()
