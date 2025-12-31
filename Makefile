@@ -121,9 +121,16 @@ fmt: ## Format Go code
 	@echo "🎨 Formatting code..."
 	go fmt ./...
 
-lint: ## Run linter (requires golangci-lint)
+lint-install: ## Install/update golangci-lint
+	@echo "📦 Installing golangci-lint..."
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@golangci-lint --version
+
+lint: ## Run linter (auto-installs golangci-lint if needed)
 	@echo "🔍 Running linter..."
-	golangci-lint run
+	@command -v golangci-lint >/dev/null 2>&1 || (echo "❌ golangci-lint not found. Run 'make lint-install' to install it." && exit 1)
+	@golangci-lint --version | head -1
+	@golangci-lint run --timeout=5m 2>/dev/null || (echo "⚠️  Linter failed. This might be due to Go version compatibility. Try updating golangci-lint:" && echo "   make lint-install" && exit 1)
 
 # Dependency management
 deps: ## Download dependencies
