@@ -2,7 +2,9 @@ package otel
 
 import (
 	"context"
-	"log"
+
+	"s3-worker-kit/internal/config"
+	"s3-worker-kit/internal/observability"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -10,9 +12,11 @@ import (
 )
 
 // InitTracerProvider initializes the OpenTelemetry tracer provider with the given configuration
-func InitTracerProvider(enabled bool, exporter, endpoint string, insecure bool) *sdktrace.TracerProvider {
-	if !enabled {
-		log.Println("otel: tracing disabled, using no-op tracer provider")
+func InitTracerProvider(cfg config.Config, logger observability.Logger) *sdktrace.TracerProvider {
+	otelCfg := cfg.Otel
+
+	if !otelCfg.Enabled {
+		logger.Info("tracing disabled, using no-op tracer provider")
 		// Return a no-op tracer provider if OTEL is disabled
 		tp := sdktrace.NewTracerProvider(
 			sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -21,28 +25,35 @@ func InitTracerProvider(enabled bool, exporter, endpoint string, insecure bool) 
 		return tp
 	}
 
-	log.Printf("otel: initializing tracer provider with exporter=%s, endpoint=%s, insecure=%t", exporter, endpoint, insecure)
+	logger.Info("initializing tracer provider",
+		"exporter", otelCfg.Exporter,
+		"endpoint", otelCfg.Endpoint,
+		"insecure", otelCfg.Insecure,
+	)
 
 	var spanExporter sdktrace.SpanExporter
 	var err error
 
-	switch exporter {
+	switch otelCfg.Exporter {
 	case "otlp":
 		// Create OTLP gRPC exporter
-		log.Printf("otel: creating OTLP gRPC exporter to %s", endpoint)
+		logger.Info("creating OTLP gRPC exporter", "endpoint", otelCfg.Endpoint)
 		spanExporter, err = otlptracegrpc.New(
 			context.Background(),
-			otlptracegrpc.WithEndpoint(endpoint),
+			otlptracegrpc.WithEndpoint(otelCfg.Endpoint),
 			otlptracegrpc.WithInsecure(),
 		)
 		if err != nil {
-			log.Printf("otel: failed to create OTLP exporter: %v, falling back to no exporter", err)
+			logger.Error("failed to create OTLP exporter, falling back to no exporter",
+				"error", err,
+				"endpoint", otelCfg.Endpoint,
+			)
 			spanExporter = nil
 		} else {
-			log.Println("otel: OTLP gRPC exporter created successfully")
+			logger.Info("OTLP gRPC exporter created successfully", "endpoint", otelCfg.Endpoint)
 		}
 	default:
-		log.Printf("otel: unsupported exporter '%s', using no exporter", exporter)
+		logger.Warn("unsupported exporter, using no exporter", "exporter", otelCfg.Exporter)
 		spanExporter = nil
 	}
 
@@ -52,16 +63,16 @@ func InitTracerProvider(enabled bool, exporter, endpoint string, insecure bool) 
 
 	if spanExporter != nil {
 		tpOpts = append(tpOpts, sdktrace.WithBatcher(spanExporter))
-		log.Println("otel: span batcher configured for exporter")
+		logger.Info("span batcher configured for exporter")
 	} else {
-		log.Println("otel: no span exporter configured, traces will be stored in memory only")
+		logger.Info("no span exporter configured, traces will be stored in memory only")
 	}
 
 	tp := sdktrace.NewTracerProvider(tpOpts...)
 
 	// Set as global tracer provider
 	otel.SetTracerProvider(tp)
-	log.Println("otel: tracer provider initialized and set as global provider")
+	logger.Info("tracer provider initialized and set as global provider")
 
 	return tp
 }
