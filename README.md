@@ -1,4 +1,8 @@
-# 1️⃣ High-level Architecture
+# S3 Worker Kit
+
+Worker service for uploading files to S3.
+
+## 1️⃣ High-level Architecture
 
 ## Goals
 
@@ -449,34 +453,3 @@ The project includes a comprehensive `.gitignore` file that ignores:
 - **Test files**: Generated test files like `*_test.txt`
 
 This ensures a clean repository with only source code and documentation.
-
-5️⃣ Infrastructure: S3 Implementation
-
-6️⃣ Application Layer (Use Case)
-
-- Upload Service
-
-```go
-// application/upload/service.go
-package upload
-
-import (
-  "context"
-  "sync"
-
-  "s3-worker-kit/internal/domain/s3task"
-  "s3-worker-kit/internal/infrastructure/workerpool"
-)
-
-type Service struct {
-  uploader s3task.Uploader
-  pool     workerpool.Pool
-}
-
-func NewService(
-  uploader s3task.Uploader,
-  pool workerpool.Pool,
-) *Service {
-  return &Service{uploader, pool}
-}
-```
