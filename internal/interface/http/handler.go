@@ -6,6 +6,7 @@ import (
 	"s3-worker-kit/internal/application/upload"
 	"s3-worker-kit/internal/domain/s3task"
 	"s3-worker-kit/internal/observability"
+	"s3-worker-kit/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,7 +38,7 @@ type UploadTaskRequest struct {
 func (h *Handler) UploadTasks(c *gin.Context) {
 	var req UploadTasksRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.logger.Error("invalid request payload", "error", err)
+		h.logger.Error("invalid request payload", "error", err, "trace_id", middleware.GetTraceIDFromContext(c))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Invalid request payload",
 			"details": err.Error(),
@@ -45,7 +46,7 @@ func (h *Handler) UploadTasks(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("received upload tasks request", "task_count", len(req.Tasks))
+	h.logger.Info("received upload tasks request", "task_count", len(req.Tasks), "trace_id", middleware.GetTraceIDFromContext(c))
 
 	tasks := make([]s3task.UploadTask, len(req.Tasks))
 	for i, taskReq := range req.Tasks {
@@ -57,7 +58,7 @@ func (h *Handler) UploadTasks(c *gin.Context) {
 	}
 
 	if err := h.service.UploadAll(c.Request.Context(), tasks); err != nil {
-		h.logger.Error("upload tasks failed", "error", err, "task_count", len(tasks))
+		h.logger.Error("upload tasks failed", "error", err, "task_count", len(tasks), "trace_id", middleware.GetTraceIDFromContext(c))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Upload failed",
 			"details": err.Error(),
@@ -65,7 +66,7 @@ func (h *Handler) UploadTasks(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("upload tasks completed successfully", "task_count", len(tasks))
+	h.logger.Info("upload tasks completed successfully", "task_count", len(tasks), "trace_id", middleware.GetTraceIDFromContext(c))
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Upload completed successfully",
 		"uploaded_count": len(tasks),
@@ -100,13 +101,14 @@ func (h *Handler) UploadFile(c *gin.Context) {
 		"key", key,
 		"filename", header.Filename,
 		"size", header.Size,
+		"trace_id", middleware.GetTraceIDFromContext(c),
 	)
 
 	// Read file content
 	content := make([]byte, header.Size)
 	_, err = file.Read(content)
 	if err != nil {
-		h.logger.Error("failed to read file content", "error", err)
+		h.logger.Error("failed to read file content", "error", err, "trace_id", middleware.GetTraceIDFromContext(c))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to read file content",
 			"details": err.Error(),
@@ -121,7 +123,7 @@ func (h *Handler) UploadFile(c *gin.Context) {
 	}
 
 	if err := h.service.UploadAll(c.Request.Context(), []s3task.UploadTask{task}); err != nil {
-		h.logger.Error("file upload failed", "error", err, "bucket", bucket, "key", key)
+		h.logger.Error("file upload failed", "error", err, "bucket", bucket, "key", key, "trace_id", middleware.GetTraceIDFromContext(c))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "File upload failed",
 			"details": err.Error(),
@@ -129,7 +131,7 @@ func (h *Handler) UploadFile(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("file upload completed successfully", "bucket", bucket, "key", key)
+	h.logger.Info("file upload completed successfully", "bucket", bucket, "key", key, "trace_id", middleware.GetTraceIDFromContext(c))
 	c.JSON(http.StatusOK, gin.H{
 		"message": "File uploaded successfully",
 		"bucket":  bucket,
@@ -140,19 +142,24 @@ func (h *Handler) UploadFile(c *gin.Context) {
 
 // HealthCheck provides a simple health check endpoint
 func (h *Handler) HealthCheck(c *gin.Context) {
+	h.logger.Info("health check requested", "trace_id", middleware.GetTraceIDFromContext(c))
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "healthy",
-		"service": "s3-worker-kit",
+		"status":   "healthy",
+		"service":  "s3-worker-kit",
+		"trace_id": middleware.GetTraceIDFromContext(c),
 	})
 }
 
 // SetupRoutes configures the Gin router with all routes
-func SetupRoutes(handler *Handler, logger observability.Logger) *gin.Engine {
+func SetupRoutes(handler *Handler, logger observability.Logger, tp middleware.TracerProvider) *gin.Engine {
 	if logger != nil {
 		gin.DefaultWriter = &logWriter{logger: logger.With("component", "gin")}
 	}
 
 	router := gin.Default()
+
+	// Add trace middleware for distributed tracing
+	router.Use(middleware.TraceMiddleware(observability.ServiceName, tp))
 
 	// Add service name to all responses
 	router.Use(func(c *gin.Context) {
