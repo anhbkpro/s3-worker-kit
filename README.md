@@ -384,7 +384,47 @@ Retry
 1. Clone the repository
 2. Install dependencies: `go mod download`
 3. Start LocalStack: `docker-compose up -d`
-4. Create test bucket: `aws --endpoint-url=http://localhost:4566 s3 mb s3://test-bucket`
+4. Create test bucket: `make bucket-create`
+
+### Makefile Commands
+
+This project includes a comprehensive Makefile for development tasks:
+
+```bash
+# Quick setup (dependencies + services + bucket)
+make setup
+
+# Development services
+make dev-up      # Start LocalStack, Tempo, Grafana, OTLP Collector
+make dev-down    # Stop all services
+make dev-logs    # View service logs
+make dev-status  # Check service status
+
+# Bucket management
+make bucket-create   # Create test bucket
+make bucket-delete   # Delete test bucket
+make bucket-list     # List bucket contents
+
+# Testing
+make test            # Run all tests
+make test-unit       # Run unit tests only
+make test-integration # Run integration tests
+make test-all        # Run full test suite
+
+# Building & Running
+make build           # Build the application
+make run-server      # Run in server mode
+make run-cli         # Run in CLI mode
+
+# Code quality
+make fmt             # Format code
+make lint            # Run linter
+make clean           # Clean build artifacts
+
+# Help
+make help            # Show all available commands
+make quickstart      # New developer guide
+```
 
 ### Running
 

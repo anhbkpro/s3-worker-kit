@@ -23,7 +23,6 @@ services:
       - tempo-data:/tmp/tempo
     ports:
       - "3200:3200"   # Tempo HTTP
-      - "9095:9096"   # Tempo gRPC
     restart: unless-stopped
 
   # OTLP Collector

@@ -8,7 +8,9 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
 // InitTracerProvider initializes the OpenTelemetry tracer provider with the given configuration
@@ -17,9 +19,22 @@ func InitTracerProvider(cfg config.Config, logger observability.Logger) *sdktrac
 
 	if !otelCfg.Enabled {
 		logger.Info("tracing disabled, using no-op tracer provider")
+		// Create resource with service name even for disabled tracing
+		res, err := resource.New(
+			context.Background(),
+			resource.WithAttributes(
+				semconv.ServiceNameKey.String(observability.ServiceName),
+			),
+		)
+		if err != nil {
+			logger.Error("failed to create resource", "error", err)
+			res = resource.Default()
+		}
+
 		// Return a no-op tracer provider if OTEL is disabled
 		tp := sdktrace.NewTracerProvider(
 			sdktrace.WithSampler(sdktrace.AlwaysSample()),
+			sdktrace.WithResource(res),
 		)
 		otel.SetTracerProvider(tp)
 		return tp
@@ -31,8 +46,19 @@ func InitTracerProvider(cfg config.Config, logger observability.Logger) *sdktrac
 		"insecure", otelCfg.Insecure,
 	)
 
+	// Create resource with service name
+	res, err := resource.New(
+		context.Background(),
+		resource.WithAttributes(
+			semconv.ServiceNameKey.String(observability.ServiceName),
+		),
+	)
+	if err != nil {
+		logger.Error("failed to create resource", "error", err)
+		res = resource.Default()
+	}
+
 	var spanExporter sdktrace.SpanExporter
-	var err error
 
 	switch otelCfg.Exporter {
 	case "otlp":
@@ -59,6 +85,7 @@ func InitTracerProvider(cfg config.Config, logger observability.Logger) *sdktrac
 
 	tpOpts := []sdktrace.TracerProviderOption{
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(res),
 	}
 
 	if spanExporter != nil {
@@ -72,7 +99,8 @@ func InitTracerProvider(cfg config.Config, logger observability.Logger) *sdktrac
 
 	// Set as global tracer provider
 	otel.SetTracerProvider(tp)
-	logger.Info("tracer provider initialized and set as global provider")
+	logger.Info("tracer provider initialized and set as global provider",
+		"service_name", observability.ServiceName)
 
 	return tp
 }
