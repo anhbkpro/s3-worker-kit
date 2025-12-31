@@ -9,6 +9,14 @@ type Config struct {
 	AWSRegion   string
 	AWSEndpoint string
 	PoolSize    int
+	Otel        OtelConfig
+}
+
+type OtelConfig struct {
+	Enabled  bool   `json:"enabled"`
+	Exporter string `json:"exporter"`
+	Endpoint string `json:"endpoint"`
+	Insecure bool   `json:"insecure"`
 }
 
 func Load() Config {
@@ -18,6 +26,12 @@ func Load() Config {
 		AWSRegion:   getEnv("AWS_REGION", "us-east-1"),
 		AWSEndpoint: os.Getenv("AWS_ENDPOINT"),
 		PoolSize:    poolSize,
+		Otel: OtelConfig{
+			Enabled:  getEnv("OTEL_ENABLED", "true") == "true",
+			Exporter: getEnv("OTEL_EXPORTER", "otlp"),
+			Endpoint: getEnv("OTEL_ENDPOINT", "localhost:4318"),
+			Insecure: getEnv("OTEL_INSECURE", "true") == "true",
+		},
 	}
 }
 

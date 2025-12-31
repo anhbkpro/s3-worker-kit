@@ -1,6 +1,6 @@
 # Alternative .rest file format (if your extension prefers this)
 @hostname = localhost
-@port = 4005
+@port = 4006
 @baseUrl = http://{{hostname}}:{{port}}
 @bucket = test-bucket
 

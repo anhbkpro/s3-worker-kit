@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	otelcontext "s3-worker-kit/otel"
+
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -54,11 +56,14 @@ func TraceMiddleware(serviceName string, tp TracerProvider) gin.HandlerFunc {
 			traceID = span.SpanContext().TraceID().String()
 		}
 		c.Header("X-Trace-ID", traceID)
-		// Also store in context for use in handlers
+
+		// Store trace information in both Gin context (for easy handler access)
+		// and Go context (for proper context propagation)
 		c.Set("trace_id", traceID)
 		c.Set("span", span)
 
-		// Store span in context for use in handlers
+		// Update Go context with trace information for distributed tracing
+		ctx = otelcontext.SetTraceIDInContext(ctx, traceID)
 		c.Request = c.Request.WithContext(ctx)
 
 		// Wrap the response writer to capture status code

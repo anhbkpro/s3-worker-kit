@@ -15,6 +15,39 @@ docker-compose up -d
 # Run the API server on port 4005
 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_ENDPOINT=http://localhost:4566 AWS_REGION=us-east-1 ./worker -mode=server -port=4005
 
+## OpenTelemetry (OTEL) Configuration
+
+The application supports distributed tracing with OpenTelemetry. Configure via environment variables:
+
+```bash
+# Enable/disable tracing
+OTEL_ENABLED=true
+
+# Exporter type (currently only 'otlp' is supported)
+OTEL_EXPORTER=otlp
+
+# OTLP endpoint for exporting traces
+OTEL_ENDPOINT=localhost:4318
+
+# Use insecure connection (for development)
+OTEL_INSECURE=true
+```
+
+### Default Configuration
+- **Enabled**: `true`
+- **Exporter**: `otlp`
+- **Endpoint**: `localhost:4318`
+- **Insecure**: `true`
+
+### Example Usage
+```bash
+# Run with OTLP tracing to Tempo
+docker-compose up -d tempo otel-collector
+
+# Start application with tracing
+OTEL_ENABLED=true ./worker -mode=server -port=8080
+```
+
 ## Graceful Shutdown
 
 The server supports graceful shutdown with proper signal handling:
